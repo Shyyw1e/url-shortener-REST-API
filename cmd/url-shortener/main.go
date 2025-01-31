@@ -5,7 +5,7 @@ import (
 	"os"
 	"url-shorter-REST-API/internal/config"
 	"url-shorter-REST-API/internal/lib/logger/slpkg"
-	"url-shorter-REST-API/internal/storage/sqlite"
+	"url-shorter-REST-API/internal/storage/posql"
 )
 
 const (
@@ -22,7 +22,7 @@ func main() {
 	log.Info("Starting url-shortener", slog.String("env", cfg.Env))
 	log.Debug("Debug messages are enabled now")
 
-	storage, err := sqlite.New(cfg.StoragePath)
+	storage, err := posql.New(cfg.DatabaseDSN)
 	if err != nil {
 		log.Error("failed to init storage", slpkg.Err(err))
 		os.Exit(1)

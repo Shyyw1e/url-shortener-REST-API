@@ -1,6 +1,6 @@
 env: "local" #local, dev, prod
-storage_path: "C:/Users/Shyywie/url-shorter-REST-API/storage/storage.db"
-http_server: 
+database_dsn: "host=localhost port=5432 user=your_user password=your_password dbname=url_shortener sslmode=disable"
+http_server:
   address: "localhost:8082"
   timeout: 4s
   idle_timeout: 60s
