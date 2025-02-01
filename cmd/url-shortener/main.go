@@ -4,8 +4,13 @@ import (
 	"log/slog"
 	"os"
 	"url-shorter-REST-API/internal/config"
+	mwLogger "url-shorter-REST-API/internal/http-server/middleware/logger"
+	"url-shorter-REST-API/internal/lib/logger/handlers/slogpretty"
 	"url-shorter-REST-API/internal/lib/logger/slpkg"
 	"url-shorter-REST-API/internal/storage/posql"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 )
 
 const (
@@ -19,8 +24,12 @@ func main() {
 
 	log := setupLogger(cfg.Env)
 
-	log.Info("Starting url-shortener", slog.String("env", cfg.Env))
-	log.Debug("Debug messages are enabled now")
+	log.Info(
+		"starting url-shortener",
+		slog.String("env", cfg.Env),
+		slog.String("version", "123"),
+	)
+	log.Debug("debug messages are enabled")
 
 	storage, err := posql.New(cfg.DatabaseDSN)
 	if err != nil {
@@ -42,20 +51,26 @@ func main() {
 
 	_ = storage
 
-	//TODO: init router: chi (минималистичный очень, полностью совместим с net/http), "chi render"
+	router := chi.NewRouter()
+
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger) // записывает в свой chi логгер. Надо проверить, можно ли переопределить (скорее всего нельзя)
+	router.Use(mwLogger.New(log))
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
 
 	//TODO: run server:
+
 }
 
 func setupLogger(env string) *slog.Logger {
 	var log *slog.Logger
 	switch env {
 	case envLocal:
-		log = slog.New(
-			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		)
-		//Можно сделать только dev, если не хотим разделять серверы (по сути в данном случае так и нужно сделать), но я крутой и напишу на будущее сразу и dev и prod
-	case envDev:
+		log = setupPrettySlog()
+
+	case envDev: //Можно сделать только dev, если не хотим разделять серверы (по сути в данном случае так и нужно сделать), но я крутой и напишу на будущее сразу и dev и prod
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		)
@@ -65,4 +80,16 @@ func setupLogger(env string) *slog.Logger {
 		)
 	}
 	return log
+}
+
+func setupPrettySlog() *slog.Logger {
+	opts := slogpretty.PrettyHandlerOptions{
+		SlogOpts: &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		},
+	}
+
+	handler := opts.NewPrettyHandler(os.Stdout)
+
+	return slog.New(handler)
 }
