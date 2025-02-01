@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -21,10 +22,18 @@ type HTTPServer struct {
 }
 
 func MustLoad() *Config {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		log.Fatal("CONFIG_PATH is not set")
 	}
+
+	log.Println("Using config file:", configPath)
+
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		log.Fatalf("Config file does not exist: %s:", configPath)
 	}
@@ -35,4 +44,8 @@ func MustLoad() *Config {
 		log.Fatalf("Cannot read config: %s", err)
 	}
 	return &cfg
+}
+
+func dotenv_cfg() {
+
 }

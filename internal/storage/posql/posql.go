@@ -45,7 +45,7 @@ func New(dsn string) (*Storage, error) {
 }
 
 // SaveURL сохраняет URL с заданным алиасом
-func (s *Storage) SaveURL(urlToSave, alias string) error {
+func (s *Storage) SaveURL(urlToSave, alias string) (int64, error) {
 	const op = "storage.postgres.SaveURL"
 
 	stmt := `INSERT INTO url (url, alias) VALUES ($1, $2)`
@@ -53,11 +53,11 @@ func (s *Storage) SaveURL(urlToSave, alias string) error {
 	if err != nil {
 		// проверка уникальности
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" { // 23505 = unique_violation
-			return fmt.Errorf("%s: %w", op, storage.ErrURLExists)
+			return 0, fmt.Errorf("%s: %w", op, storage.ErrURLExists)
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
-	return nil
+	return 0, nil
 }
 
 // GetURL получает оригинальный URL по алиасу

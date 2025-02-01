@@ -2,8 +2,10 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"os"
 	"url-shorter-REST-API/internal/config"
+	"url-shorter-REST-API/internal/http-server/handlers/url/save"
 	mwLogger "url-shorter-REST-API/internal/http-server/middleware/logger"
 	"url-shorter-REST-API/internal/lib/logger/handlers/slogpretty"
 	"url-shorter-REST-API/internal/lib/logger/slpkg"
@@ -42,7 +44,7 @@ func main() {
 	urlToSave := "https://example.com"
 	alias := "ex"
 
-	err = storage.SaveURL(urlToSave, alias)
+	_, err = storage.SaveURL(urlToSave, alias)
 	if err != nil {
 		log.Error("failed to save URL", slpkg.Err(err))
 	} else {
@@ -60,7 +62,23 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
-	//TODO: run server:
+	router.Post("/url", save.New(log, storage))
+
+	log.Info("starting server", slog.String("address", cfg.Address))
+
+	srv := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		log.Error("failed to start server")
+	}
+
+	log.Error("server stopped")
 
 }
 
