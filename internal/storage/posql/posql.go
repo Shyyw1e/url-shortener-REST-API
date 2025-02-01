@@ -6,14 +6,14 @@ import (
 
 	"url-shorter-REST-API/internal/storage"
 
-	"github.com/lib/pq" // Драйвер PostgreSQL
+	"github.com/lib/pq"
 )
 
 type Storage struct {
 	db *sql.DB
 }
 
-// New создает подключение к PostgreSQL
+// Подключаюсь к посгру
 func New(dsn string) (*Storage, error) {
 	const op = "storage.postgres.New"
 
@@ -22,12 +22,12 @@ func New(dsn string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Проверяем подключение
+	// Проверка коннекта
 	if err = db.Ping(); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Создаем таблицу, если её нет
+	// Если нет таблицы, делаем
 	stmt := `
 	CREATE TABLE IF NOT EXISTS url (
 		id SERIAL PRIMARY KEY,
@@ -51,7 +51,7 @@ func (s *Storage) SaveURL(urlToSave, alias string) error {
 	stmt := `INSERT INTO url (url, alias) VALUES ($1, $2)`
 	_, err := s.db.Exec(stmt, urlToSave, alias)
 	if err != nil {
-		// Проверяем ошибку на нарушение уникальности
+		// проверка уникальности
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" { // 23505 = unique_violation
 			return fmt.Errorf("%s: %w", op, storage.ErrURLExists)
 		}
@@ -76,7 +76,23 @@ func (s *Storage) GetURL(alias string) (string, error) {
 	return url, nil
 }
 
-// Close закрывает соединение с БД
-func (s *Storage) Close() error {
-	return s.db.Close()
+func (s *Storage) DeleteURL(alias string) error {
+	const op = "storage.postgres.DeleteURL"
+
+	stmt := "DELETE FROM url WHERE alias = $1"
+	res, err := s.db.Exec(stmt, alias)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("%s: %w", op, storage.ErrURLNotFound)
+	}
+
+	return nil
 }
