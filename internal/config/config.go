@@ -11,7 +11,7 @@ import (
 
 type Config struct {
 	Env         string `yaml:"env" env:"ENV" env-required:"true"`
-	DatabaseDSN string `yaml:"database_dsn" env-required:"true"`
+	StoragePath string `yaml:"database_dsn" env-required:"true"`
 	HTTPServer  `yaml:"http_server"`
 }
 

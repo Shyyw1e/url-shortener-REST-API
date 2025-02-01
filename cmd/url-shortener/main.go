@@ -34,7 +34,7 @@ func main() {
 	)
 	log.Debug("debug messages are enabled")
 
-	storage, err := posql.New(cfg.DatabaseDSN)
+	storage, err := posql.New(cfg.StoragePath)
 	if err != nil {
 		log.Error("failed to init storage", slpkg.Err(err))
 		os.Exit(1)
