@@ -28,6 +28,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Info("Database connected successfully")
+
+	urlToSave := "https://example.com"
+	alias := "ex"
+
+	err = storage.SaveURL(urlToSave, alias)
+	if err != nil {
+		log.Error("failed to save URL", slpkg.Err(err))
+	} else {
+		log.Info("URL saved successfully", slog.String("url", urlToSave), slog.String("alias", alias))
+	}
+
 	_ = storage
 
 	//TODO: init router: chi (минималистичный очень, полностью совместим с net/http), "chi render"
