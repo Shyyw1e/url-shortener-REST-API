@@ -9,7 +9,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-24-04
+    runs-on: ubuntu-24.04
     env:
       HOST: root@81.177.220.176
       DEPLOY_DIRECTORY: /root/apps/url-shortener
