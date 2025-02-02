@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"url-shorter-REST-API/internal/config"
 	"url-shorter-REST-API/internal/http-server/handlers/redirect"
 	"url-shorter-REST-API/internal/http-server/handlers/url/save"
@@ -76,6 +81,9 @@ func main() {
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
 	srv := &http.Server{
 		Addr:         cfg.Address,
 		Handler:      router,
@@ -84,12 +92,30 @@ func main() {
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		log.Error("failed to start server")
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Error("failed to start server")
+		}
+	}()
+
+	log.Info("server started")
+
+	<-done
+	log.Info("stopping server")
+
+	// TODO: move timeout to config
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("failed to stop server", slpkg.Err(err))
+
+		return
 	}
 
-	log.Error("server stopped")
+	// TODO: close storage
 
+	log.Info("server stopped")
 }
 
 func setupLogger(env string) *slog.Logger {
