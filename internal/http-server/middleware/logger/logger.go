@@ -4,9 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"log/slog"
-
 	"github.com/go-chi/chi/middleware"
+	"log/slog"
 )
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
@@ -37,7 +36,6 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 			}()
 
 			next.ServeHTTP(ww, r)
-
 		}
 
 		return http.HandlerFunc(fn)

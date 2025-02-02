@@ -1,4 +1,4 @@
-package slpkg
+package sl
 
 import (
 	"log/slog"

@@ -3,15 +3,15 @@ package redirect
 import (
 	"errors"
 	"net/http"
-
 	"log/slog"
-
+	
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	
 
 	resp "url-shorter-REST-API/internal/lib/api/response"
-	"url-shorter-REST-API/internal/lib/logger/slpkg"
+	"url-shorter-REST-API/internal/lib/logger/sl"
 	"url-shorter-REST-API/internal/storage"
 )
 
@@ -26,7 +26,7 @@ func New(log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.redirect.New"
 
-		log := log.With(
+		log = log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
@@ -49,7 +49,7 @@ func New(log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			log.Error("failed to get url", slpkg.Err(err))
+			log.Error("failed to get url", sl.Err(err))
 
 			render.JSON(w, r, resp.Error("internal error"))
 

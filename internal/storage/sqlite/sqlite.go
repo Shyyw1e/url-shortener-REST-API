@@ -1,4 +1,4 @@
-package posql
+package sqlite
 
 import (
 	"database/sql"

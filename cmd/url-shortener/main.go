@@ -2,23 +2,24 @@ package main
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+	"log/slog"
+
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	
 
 	"url-shorter-REST-API/internal/config"
 	"url-shorter-REST-API/internal/http-server/handlers/redirect"
 	"url-shorter-REST-API/internal/http-server/handlers/url/save"
 	mwLogger "url-shorter-REST-API/internal/http-server/middleware/logger"
 	"url-shorter-REST-API/internal/lib/logger/handlers/slogpretty"
-	"url-shorter-REST-API/internal/lib/logger/slpkg"
-	"url-shorter-REST-API/internal/storage/posql"
-
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"url-shorter-REST-API/internal/lib/logger/sl"
+	"url-shorter-REST-API/internal/storage/sqlite"
 )
 
 const (
@@ -39,22 +40,10 @@ func main() {
 	)
 	log.Debug("debug messages are enabled")
 
-	storage, err := posql.New(cfg.StoragePath)
+	storage, err := sqlite.New(cfg.StoragePath)
 	if err != nil {
-		log.Error("failed to init storage", slpkg.Err(err))
+		log.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
-	}
-
-	log.Info("Database connected successfully")
-
-	urlToSave := "https://example.com"
-	alias := "ex"
-
-	_, err = storage.SaveURL(urlToSave, alias)
-	if err != nil {
-		log.Error("failed to save URL", slpkg.Err(err))
-	} else {
-		log.Info("URL saved successfully", slog.String("url", urlToSave), slog.String("alias", alias))
 	}
 
 	_ = storage
@@ -62,8 +51,7 @@ func main() {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
-	router.Use(middleware.Logger) // записывает в свой chi логгер. Надо проверить, можно ли переопределить (скорее всего нельзя)
+	router.Use(middleware.Logger)
 	router.Use(mwLogger.New(log))
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
@@ -108,7 +96,7 @@ func main() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Error("failed to stop server", slpkg.Err(err))
+		log.Error("failed to stop server", sl.Err(err))
 
 		return
 	}
@@ -120,11 +108,11 @@ func main() {
 
 func setupLogger(env string) *slog.Logger {
 	var log *slog.Logger
+
 	switch env {
 	case envLocal:
 		log = setupPrettySlog()
-
-	case envDev: //Можно сделать только dev, если не хотим разделять серверы (по сути в данном случае так и нужно сделать), но я крутой и напишу на будущее сразу и dev и prod
+	case envDev:
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		)
@@ -133,6 +121,7 @@ func setupLogger(env string) *slog.Logger {
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 		)
 	}
+
 	return log
 }
 
